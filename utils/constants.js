@@ -1,0 +1,1 @@
+export const BASE_URL = 'https://shop.sgproof.com/sgws/en/usd/search?q=:relevance'
