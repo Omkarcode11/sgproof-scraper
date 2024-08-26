@@ -228,6 +228,9 @@ async function scrape() {
 
     for (let i = 0; i < cards.length; i++) {
       count++;
+      // for resume the script enter the last product count
+      // if (count < 1237) continue;
+
       try {
         console.log("Waiting before scraping product cards...");
         await new Promise((res) => setTimeout(res, 5000));
