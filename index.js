@@ -18,7 +18,7 @@ import {
   totalProductsCSS,
   viewMoreButtonCSS,
 } from "./utils/cssSelector.js";
-import { BASE_URL } from "./utils/constants.js";
+import { BASE_URL, PRODUCT_PAGE_URL } from "./utils/constants.js";
 
 // Initialize the CSV writer with the specified columns
 
@@ -28,7 +28,7 @@ async function scrape() {
   console.log("Launching browser...");
   const browser = await puppeteer.launch({
     protocolTimeout: 600000,
-    headless: true,
+    headless: false,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -40,7 +40,7 @@ async function scrape() {
   const page = await browser.newPage();
   console.log("Browser launched and new page opened.");
   await page.setRequestInterception(true);
-  page.on("request", (request) => {
+  await page.on("request", (request) => {
     if (request.resourceType() === "image") {
       request.abort();
     } else {
@@ -75,50 +75,25 @@ async function scrape() {
   console.log("Cookies saved to file.");
 
   let allLocationElement;
+  // for (let i = 4; i < allLocationElement.length / 2; i++) {
+  //change index for a state
+  let i = 3;
+  let stateName = "";
+  count = 1;
   try {
     console.log("Waiting for location selector...");
     await page.waitForSelector(selectLocation);
     console.log("Clicking on location selector...");
     await page.click(selectLocation);
     allLocationElement = await page.$$(allLocation);
+    await allLocationElement[i].click();
+    await new Promise((res, rej) => setTimeout(() => res(), 10000));
     console.log("Locations found.");
   } catch (err) {
     console.error("Error waiting for location selector:", err.message);
   }
 
-  // for (let i = 4; i < allLocationElement.length / 2; i++) {
-  //change index for a state
-  let i = 5;
-  let stateName = "";
-  count = 1;
-
   await new Promise((res, rej) => setTimeout(() => res(), 10000));
-
-  try {
-    await page.waitForSelector(filterCSS, { timeout: 5000 });
-    await page.click(filterCSS);
-
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("Enter");
-  } catch (err) {
-    console.error("Error waiting for location selector:", err.message);
-  }
-
-  try {
-    console.log("Waiting for location selector...");
-    await page.waitForSelector(selectLocation);
-    if (i != 0) {
-      console.log("Clicking on location selector...");
-
-      await page.click(selectLocation);
-    }
-    allLocationElement = await page.$$(allLocation);
-    console.log(`Clicking on location ${i + 1}...`);
-    await allLocationElement[i].click();
-  } catch (err) {
-    console.error("Error selecting location:", err.message);
-  }
 
   try {
     stateName = await page.evaluate(
@@ -200,7 +175,12 @@ async function scrape() {
     console.error("Error getting total products:", err.message);
   }
 
-  for (let i = 0; i < Math.ceil(Number(totalProducts) / 100); i++) {
+  for (let j = 0; j < Math.ceil(Number(totalProducts) / 100); j++) {
+    let url = PRODUCT_PAGE_URL(j);
+    await page.goto(url, {
+      waitUntil: "networkidle2",
+      timeout: 600000,
+    });
     let cards;
     let cardLinks;
 
@@ -226,7 +206,7 @@ async function scrape() {
       continue;
     }
 
-    for (let i = 0; i < cards.length; i++) {
+    for (let k = 0; k < cards.length; k++) {
       count++;
       // for resume the script enter the last product count
       // if (count < 1237) continue;
@@ -280,8 +260,8 @@ async function scrape() {
       let newPage;
 
       try {
-        console.log(`Getting link for product ${i + 1}...`);
-        let link = await page.evaluate((el) => el.href, cardLinks[i]);
+        console.log(`Getting link for product ${k + 1}...`);
+        let link = await page.evaluate((el) => el.href, cardLinks[k]);
         product.content_url = link; // Saving the link as content_url
         console.log(`Opening link: ${link}`);
         newPage = await browser.newPage();
@@ -298,7 +278,6 @@ async function scrape() {
           waitUntil: "networkidle2",
           timeout: 600000,
         });
-
         await newPage.setViewport({
           width: 1280,
           height: 800,
@@ -441,10 +420,8 @@ async function scrape() {
     }
 
     try {
-      console.log("Waiting for next page button...");
-      await page.waitForSelector(nextPage);
-      console.log("Clicking next page button...");
-      await page.click(nextPage);
+      let nextPageUrl = PRODUCT_PAGE_URL(j + 1);
+      await page.goto(nextPageUrl, { waitUntil: "domcontentloaded" });
     } catch (err) {
       console.error("Error navigating to next page:", err.message);
       break; // Exit the loop if there's an error navigating to the next page
