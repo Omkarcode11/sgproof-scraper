@@ -418,14 +418,6 @@ async function scrape() {
 
       await newPage.close();
     }
-
-    try {
-      let nextPageUrl = PRODUCT_PAGE_URL(j + 1);
-      await page.goto(nextPageUrl, { waitUntil: "domcontentloaded" });
-    } catch (err) {
-      console.error("Error navigating to next page:", err.message);
-      break; // Exit the loop if there's an error navigating to the next page
-    }
   }
   // }
 
